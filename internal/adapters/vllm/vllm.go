@@ -35,12 +35,18 @@ type VLLMResponse struct {
 }
 
 type StreamResponse struct {
+	ID      string `json:"id"`
+	Object  string `json:"object"`
+	Created int64  `json:"created"`
+	Model   string `json:"model"`
 	Choices []struct {
-		Delta struct {
-			Content string `json:"content"`
-		} `json:"delta"`
-		FinishReason string `json:"finish_reason"`
+		Index        int     `json:"index"`
+		Text         string  `json:"text"`
+		LogProbs     *string `json:"logprobs"`
+		FinishReason *string `json:"finish_reason"`
+		StopReason   *string `json:"stop_reason"`
 	} `json:"choices"`
+	Usage *string `json:"usage"`
 }
 
 type Vllm struct {
@@ -153,27 +159,28 @@ func (s *Vllm) MakeVLLMStreamRequest(messages []Message, temperature float64, st
 			continue
 		}
 
-		// Remove "data: " prefix if present
+		// Remove "data: " prefix
 		data := bytes.TrimPrefix(line, []byte("data: "))
 
 		var streamResp StreamResponse
 		if err := json.Unmarshal(data, &streamResp); err != nil {
-			fmt.Printf("Error unmarshaling JSON: %v\nRaw data: %s\n", err, string(data))
+			fmt.Printf("Error unmarshaling JSON: %v\n", err)
 			continue
 		}
 
-		if len(streamResp.Choices) > 0 {
-			content := streamResp.Choices[0].Delta.Content
-			if content != "" {
-				fmt.Printf("Got chunk from VLLM: %s\n", content)
-				if err := stream(content); err != nil {
-					return fmt.Errorf("error streaming response: %v", err)
-				}
+		if len(streamResp.Choices) > 0 && streamResp.Choices[0].Text != "" {
+			text := streamResp.Choices[0].Text
+			fmt.Printf("Got chunk: %s\n", text)
+			if err := stream(text); err != nil {
+				return fmt.Errorf("error streaming response: %v", err)
 			}
+		}
 
-			if streamResp.Choices[0].FinishReason == "stop" {
-				break
-			}
+		// Проверяем finish_reason
+		if len(streamResp.Choices) > 0 &&
+			streamResp.Choices[0].FinishReason != nil &&
+			*streamResp.Choices[0].FinishReason == "stop" {
+			break
 		}
 	}
 
