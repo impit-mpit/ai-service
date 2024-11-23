@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"neuro-most/ai-service/internal/adapters/vllm"
+	"strings"
 )
 
 type (
@@ -68,5 +69,5 @@ func (uc chatInteractor) Execute(ctx context.Context, input ChatInput) (ChatOutp
 		return ChatOutput{}, err
 	}
 
-	return ChatOutput{Response: finalAnswer}, nil
+	return ChatOutput{Response: strings.ReplaceAll(finalAnswer, "assistant", "")}, nil
 }
