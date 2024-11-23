@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"neuro-most/ai-service/internal/adapters/vllm"
 	"strings"
 )
@@ -92,5 +93,8 @@ func (uc chatInteractor) Execute(ctx context.Context, input ChatInput, stream fu
 		Content: indexesBuilder.String(),
 	})
 
-	return uc.vllm.MakeVLLMRequest(messages, 0.3, stream)
+	return uc.vllm.MakeVLLMRequest(messages, 0.3, func(text string) error {
+		fmt.Printf("Got chunk: %s\n", text) // Логируем каждый чанк
+		return stream(text)
+	})
 }
