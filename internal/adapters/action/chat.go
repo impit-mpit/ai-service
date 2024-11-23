@@ -16,14 +16,13 @@ func NewChatAction(uc usecase.ChatUseCase) *ChatAction {
 	}
 }
 
-func (a *ChatAction) Execute(ctx context.Context, input *aiv1.CreateChatRequest) (*aiv1.ChatResponse, error) {
+func (a *ChatAction) Execute(input *aiv1.CreateChatRequest, stream aiv1.AIService_ChatServer) error {
 	var usecaseInput usecase.ChatInput
 	usecaseInput.Message = input.Message
-	text, err := a.uc.Execute(ctx, usecaseInput)
-	if err != nil {
-		return nil, err
-	}
-	return &aiv1.ChatResponse{
-		Message: text.Response,
-	}, nil
+
+	return a.uc.Execute(context.TODO(), usecaseInput, func(text string) error {
+		return stream.Send(&aiv1.ChatResponse{
+			Message: text,
+		})
+	})
 }

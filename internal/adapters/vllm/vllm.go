@@ -1,9 +1,11 @@
 package vllm
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 )
 
@@ -23,6 +25,7 @@ type VLLMRequest struct {
 	Prompt      string  `json:"prompt"`
 	MaxTokens   int     `json:"max_tokens"`
 	Temperature float64 `json:"temperature"`
+	Stream      bool    `json:"stream"`
 }
 
 type VLLMResponse struct {
@@ -43,7 +46,16 @@ func NewVllm(vllmURL, apiKey string) *Vllm {
 	}
 }
 
-func (s *Vllm) MakeVLLMRequest(messages []Message, temperature float64) (string, error) {
+type StreamResponse struct {
+	Choices []struct {
+		Delta struct {
+			Content string `json:"content"`
+		} `json:"delta"`
+		FinishReason string `json:"finish_reason"`
+	} `json:"choices"`
+}
+
+func (s *Vllm) MakeVLLMRequest(messages []Message, temperature float64, stream func(string) error) error {
 	var prompt string
 	for _, msg := range messages {
 		prompt += fmt.Sprintf("%s: %s\n", msg.Role, msg.Content)
@@ -55,17 +67,17 @@ func (s *Vllm) MakeVLLMRequest(messages []Message, temperature float64) (string,
 		Prompt:      prompt,
 		MaxTokens:   2048,
 		Temperature: temperature,
+		Stream:      true,
 	}
 
 	jsonData, err := json.Marshal(vllmReq)
 	if err != nil {
-		return "", fmt.Errorf("error marshaling request: %v", err)
+		return fmt.Errorf("error marshaling request: %v", err)
 	}
 
-	fmt.Println(vllmReq.Prompt)
 	req, err := http.NewRequest("POST", s.vllmURL+"/v1/completions", bytes.NewBuffer(jsonData))
 	if err != nil {
-		return "", fmt.Errorf("error creating request: %v", err)
+		return fmt.Errorf("error creating request: %v", err)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -74,19 +86,47 @@ func (s *Vllm) MakeVLLMRequest(messages []Message, temperature float64) (string,
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("error making request: %v", err)
+		return fmt.Errorf("error making request: %v", err)
 	}
 	defer resp.Body.Close()
 
-	var vllmResp VLLMResponse
-	if err := json.NewDecoder(resp.Body).Decode(&vllmResp); err != nil {
-		return "", fmt.Errorf("error decoding response: %v", err)
-	}
-	fmt.Println(vllmResp.Choices)
+	reader := bufio.NewReader(resp.Body)
 
-	if len(vllmResp.Choices) == 0 {
-		return "", fmt.Errorf("no choices in response")
+	for {
+		line, err := reader.ReadBytes('\n')
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return fmt.Errorf("error reading stream: %v", err)
+		}
+
+		// Skip empty lines
+		if len(bytes.TrimSpace(line)) == 0 {
+			continue
+		}
+
+		// Remove "data: " prefix if present
+		data := bytes.TrimPrefix(line, []byte("data: "))
+
+		var streamResp StreamResponse
+		if err := json.Unmarshal(data, &streamResp); err != nil {
+			continue
+		}
+
+		if len(streamResp.Choices) > 0 {
+			content := streamResp.Choices[0].Delta.Content
+			if content != "" {
+				if err := stream(content); err != nil {
+					return fmt.Errorf("error streaming response: %v", err)
+				}
+			}
+
+			if streamResp.Choices[0].FinishReason == "stop" {
+				break
+			}
+		}
 	}
 
-	return vllmResp.Choices[0].Text, nil
+	return nil
 }
