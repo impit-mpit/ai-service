@@ -89,7 +89,9 @@ func (s *Vllm) MakeVLLMRequest(messages []Message, temperature float64) (string,
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer token123")
 
-	client := &http.Client{}
+	client := &http.Client{
+		Timeout: 3600,
+	}
 	resp, err := client.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("error making request: %v", err)
