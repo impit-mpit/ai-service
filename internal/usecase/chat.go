@@ -80,21 +80,18 @@ func (uc chatInteractor) Execute(ctx context.Context, input ChatInput, stream fu
 	}
 
 	var indexesBuilder strings.Builder
-	err = uc.vllm.MakeVLLMRequest(messages, 0.0, func(s string) error {
-		indexesBuilder.WriteString(s)
-		return nil
-	})
+	indexes, err := uc.vllm.MakeVLLMRequest(messages, 0.0)
 	if err != nil {
 		return err
 	}
-	fmt.Println("Indexes:", indexesBuilder.String())
+	fmt.Println("Indexes:", indexes)
 
 	messages = append(messages, vllm.Message{
 		Role:    "assistant",
 		Content: indexesBuilder.String(),
 	})
 
-	return uc.vllm.MakeVLLMRequest(messages, 0.3, func(text string) error {
+	return uc.vllm.MakeVLLMStreamRequest(messages, 0.3, func(text string) error {
 		fmt.Printf("Got chunk: %s\n", text) // Логируем каждый чанк
 		return stream(text)
 	})
