@@ -9,7 +9,7 @@ import (
 
 type (
 	ChatUseCase interface {
-		Execute(ctx context.Context, input ChatInput, stream func(string) error) error
+		Execute(ctx context.Context, input ChatInput) (ChatOutput, error)
 	}
 
 	ChatInput struct {
@@ -29,7 +29,7 @@ func NewChatUseCase(vllm vllm.Vllm) ChatUseCase {
 	return &chatInteractor{vllm: vllm}
 }
 
-func (uc chatInteractor) Execute(ctx context.Context, input ChatInput, stream func(string) error) error {
+func (uc chatInteractor) Execute(ctx context.Context, input ChatInput) (ChatOutput, error) {
 	systemPrompt := "Your task is to answer the user's questions using only the information from the provided documents. Give two answers to each question: one with a list of relevant document identifiers and the second with the answer to the question itself, using documents with these identifiers."
 	documents := []vllm.Document{
 		{
@@ -69,7 +69,7 @@ func (uc chatInteractor) Execute(ctx context.Context, input ChatInput, stream fu
 	}
 	docsJson, err := json.Marshal(documents)
 	if err != nil {
-		return err
+		return ChatOutput{}, err
 	}
 
 	messages := []vllm.Message{
@@ -80,7 +80,7 @@ func (uc chatInteractor) Execute(ctx context.Context, input ChatInput, stream fu
 
 	indexes, err := uc.vllm.MakeVLLMRequest(messages, 0.0)
 	if err != nil {
-		return err
+		return ChatOutput{}, err
 	}
 	fmt.Println("Indexes:", indexes)
 
@@ -89,8 +89,11 @@ func (uc chatInteractor) Execute(ctx context.Context, input ChatInput, stream fu
 		Content: indexes,
 	})
 
-	return uc.vllm.MakeVLLMStreamRequest(messages, 0.3, func(text string) error {
-		fmt.Printf("Got chunk: %s\n", text) // Логируем каждый чанк
-		return stream(text)
-	})
+	res, err := uc.vllm.MakeVLLMRequest(messages, 0.0)
+	if err != nil {
+		return ChatOutput{}, err
+	}
+	return ChatOutput{
+		Response: res,
+	}, nil
 }

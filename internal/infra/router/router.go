@@ -1,6 +1,7 @@
 package router
 
 import (
+	"context"
 	"log"
 	"net"
 	aiv1 "neuro-most/ai-service/gen/go/ai/v1"
@@ -37,11 +38,15 @@ func (r *Router) Listen() {
 	}
 }
 
-func (r *Router) Chat(input *aiv1.CreateChatRequest, stream aiv1.AIService_ChatServer) error {
+func (r *Router) Chat(ctx context.Context, input *aiv1.CreateChatRequest) (*aiv1.ChatResponse, error) {
 	var (
 		uc  = usecase.NewChatUseCase(r.vllm)
 		act = action.NewChatAction(uc)
 	)
 
-	return act.Execute(input, stream)
+	resp, err := act.Execute(ctx, input)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
 }

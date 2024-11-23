@@ -22,7 +22,7 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type AIServiceClient interface {
-	Chat(ctx context.Context, in *CreateChatRequest, opts ...grpc.CallOption) (AIService_ChatClient, error)
+	Chat(ctx context.Context, in *CreateChatRequest, opts ...grpc.CallOption) (*ChatResponse, error)
 }
 
 type aIServiceClient struct {
@@ -33,43 +33,20 @@ func NewAIServiceClient(cc grpc.ClientConnInterface) AIServiceClient {
 	return &aIServiceClient{cc}
 }
 
-func (c *aIServiceClient) Chat(ctx context.Context, in *CreateChatRequest, opts ...grpc.CallOption) (AIService_ChatClient, error) {
-	stream, err := c.cc.NewStream(ctx, &AIService_ServiceDesc.Streams[0], "/ai.v1.AIService/Chat", opts...)
+func (c *aIServiceClient) Chat(ctx context.Context, in *CreateChatRequest, opts ...grpc.CallOption) (*ChatResponse, error) {
+	out := new(ChatResponse)
+	err := c.cc.Invoke(ctx, "/ai.v1.AIService/Chat", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &aIServiceChatClient{stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	return x, nil
-}
-
-type AIService_ChatClient interface {
-	Recv() (*ChatResponse, error)
-	grpc.ClientStream
-}
-
-type aIServiceChatClient struct {
-	grpc.ClientStream
-}
-
-func (x *aIServiceChatClient) Recv() (*ChatResponse, error) {
-	m := new(ChatResponse)
-	if err := x.ClientStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
+	return out, nil
 }
 
 // AIServiceServer is the server API for AIService service.
 // All implementations must embed UnimplementedAIServiceServer
 // for forward compatibility
 type AIServiceServer interface {
-	Chat(*CreateChatRequest, AIService_ChatServer) error
+	Chat(context.Context, *CreateChatRequest) (*ChatResponse, error)
 	mustEmbedUnimplementedAIServiceServer()
 }
 
@@ -77,8 +54,8 @@ type AIServiceServer interface {
 type UnimplementedAIServiceServer struct {
 }
 
-func (UnimplementedAIServiceServer) Chat(*CreateChatRequest, AIService_ChatServer) error {
-	return status.Errorf(codes.Unimplemented, "method Chat not implemented")
+func (UnimplementedAIServiceServer) Chat(context.Context, *CreateChatRequest) (*ChatResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Chat not implemented")
 }
 func (UnimplementedAIServiceServer) mustEmbedUnimplementedAIServiceServer() {}
 
@@ -93,25 +70,22 @@ func RegisterAIServiceServer(s grpc.ServiceRegistrar, srv AIServiceServer) {
 	s.RegisterService(&AIService_ServiceDesc, srv)
 }
 
-func _AIService_Chat_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(CreateChatRequest)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
+func _AIService_Chat_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateChatRequest)
+	if err := dec(in); err != nil {
+		return nil, err
 	}
-	return srv.(AIServiceServer).Chat(m, &aIServiceChatServer{stream})
-}
-
-type AIService_ChatServer interface {
-	Send(*ChatResponse) error
-	grpc.ServerStream
-}
-
-type aIServiceChatServer struct {
-	grpc.ServerStream
-}
-
-func (x *aIServiceChatServer) Send(m *ChatResponse) error {
-	return x.ServerStream.SendMsg(m)
+	if interceptor == nil {
+		return srv.(AIServiceServer).Chat(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/ai.v1.AIService/Chat",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AIServiceServer).Chat(ctx, req.(*CreateChatRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 // AIService_ServiceDesc is the grpc.ServiceDesc for AIService service.
@@ -120,13 +94,12 @@ func (x *aIServiceChatServer) Send(m *ChatResponse) error {
 var AIService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "ai.v1.AIService",
 	HandlerType: (*AIServiceServer)(nil),
-	Methods:     []grpc.MethodDesc{},
-	Streams: []grpc.StreamDesc{
+	Methods: []grpc.MethodDesc{
 		{
-			StreamName:    "Chat",
-			Handler:       _AIService_Chat_Handler,
-			ServerStreams: true,
+			MethodName: "Chat",
+			Handler:    _AIService_Chat_Handler,
 		},
 	},
+	Streams:  []grpc.StreamDesc{},
 	Metadata: "ai/v1/ai.proto",
 }
