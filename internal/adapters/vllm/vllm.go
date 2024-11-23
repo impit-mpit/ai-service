@@ -145,7 +145,6 @@ func (s *Vllm) MakeVLLMStreamRequest(messages []Message, temperature float64, st
 
 	reader := bufio.NewReader(resp.Body)
 
-	i := 0
 	for {
 		line, err := reader.ReadBytes('\n')
 		if err == io.EOF {
