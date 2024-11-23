@@ -5,11 +5,7 @@ import (
 )
 
 type Config struct {
-	DatabaseHost     string `env:"DATABASE_HOST" env-default:"localhost"`
-	DatabasePort     int    `env:"DATABASE_PORT" env-default:"5432"`
-	DatabaseUser     string `env:"DATABASE_USER" env-default:"postgres"`
-	DatabasePassword string `env:"DATABASE_PASSWORD" env-default:"postgres"`
-	DatabaseDB       string `env:"DATABASE_DB" env-default:"news"`
+	OpenApiUrl string `env:"OPENAPIURL" env-default:"localhost"`
 }
 
 func NewLoadConfig() (Config, error) {

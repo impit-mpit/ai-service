@@ -1,4 +1,4 @@
-API_PROTO_FILES=$(shell find api-proto/src/proto/news -name *.proto)
+API_PROTO_FILES=$(shell find api-proto/src/proto/ai -name *.proto)
 .PHONY: generate
 generate:
 	protoc --proto_path=./api-proto/src/proto \

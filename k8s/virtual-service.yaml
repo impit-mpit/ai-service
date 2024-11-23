@@ -1,16 +1,16 @@
 apiVersion: networking.istio.io/v1alpha3
 kind: VirtualService
 metadata:
-  name: template-service
+  name: ai-service
 spec:
   hosts:
-  - template-service
+  - ai-service
   http:
   - match:
     - uri:
-        prefix: /template.templateService
+        prefix: /ai.AIService
     route:
     - destination:
-        host: template-service
+        host: ai-service
         port:
           number: 3001

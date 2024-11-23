@@ -1,31 +1,31 @@
 package infra
 
 import (
-	"neuro-most/template-service/config"
-	"neuro-most/template-service/internal/adapters/repo"
-	"neuro-most/template-service/internal/infra/database"
+	"neuro-most/ai-service/config"
+	"neuro-most/ai-service/internal/adapters/vllm"
+	"neuro-most/ai-service/internal/infra/router"
 )
 
 type app struct {
-	cfg config.Config
-	// router router.Router
-	db repo.GSQL
+	cfg    config.Config
+	router router.Router
+	vllm   vllm.Vllm
 }
 
 func Config(cfg config.Config) *app {
 	return &app{cfg: cfg}
 }
 
-func (a *app) Database() *app {
-	a.db = database.NewGormDB(a.cfg)
+func (a *app) Vllm() *app {
+	a.vllm = *vllm.NewVllm(a.cfg.OpenApiUrl, "token123")
 	return a
 }
 
 func (a *app) Serve() *app {
-	// a.router = router.NewRouter(a.db)
+	a.router = router.NewRouter(a.vllm)
 	return a
 }
 
 func (a *app) Start() {
-	// a.router.Listen()
+	a.router.Listen()
 }

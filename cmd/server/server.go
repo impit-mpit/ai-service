@@ -1,8 +1,8 @@
 package main
 
 import (
-	"neuro-most/template-service/config"
-	"neuro-most/template-service/internal/infra"
+	"neuro-most/ai-service/config"
+	"neuro-most/ai-service/internal/infra"
 )
 
 func main() {
@@ -10,5 +10,5 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	infra.Config(cfg).Database().Serve().Start()
+	infra.Config(cfg).Vllm().Serve().Start()
 }
