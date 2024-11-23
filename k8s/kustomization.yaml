@@ -5,4 +5,4 @@ resources:
 - deployment.yaml
 images:
 - name: ghcr.io/impit-mpit/ai-service-master
-  newTag: 7e7e3fb
+  newTag: f73fc37
