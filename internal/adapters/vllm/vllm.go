@@ -145,6 +145,7 @@ func (s *Vllm) MakeVLLMStreamRequest(messages []Message, temperature float64, st
 
 	reader := bufio.NewReader(resp.Body)
 
+	i := 0
 	for {
 		line, err := reader.ReadBytes('\n')
 		if err == io.EOF {
@@ -167,7 +168,10 @@ func (s *Vllm) MakeVLLMStreamRequest(messages []Message, temperature float64, st
 			fmt.Printf("Error unmarshaling JSON: %v\n", err)
 			continue
 		}
-
+		if i < 4 {
+			continue
+		}
+		i++
 		if len(streamResp.Choices) > 0 && streamResp.Choices[0].Text != "" {
 			text := streamResp.Choices[0].Text
 			fmt.Printf("Got chunk: %s\n", text)
