@@ -53,10 +53,20 @@ func (uc chatInteractor) Execute(ctx context.Context, input ChatInput) (ChatOutp
 		{Role: "user", Content: input.Message},
 	}
 
-	text, err := uc.vllm.MakeVLLMRequest(messages, 0.2)
+	relevantIndexes, err := uc.vllm.MakeVLLMRequest(messages, 0.0)
 	if err != nil {
 		return ChatOutput{}, err
 	}
 
-	return ChatOutput{Response: text}, nil
+	messages = append(messages, vllm.Message{
+		Role:    "assistant",
+		Content: relevantIndexes,
+	})
+
+	finalAnswer, err := uc.vllm.MakeVLLMRequest(messages, 0.3)
+	if err != nil {
+		return ChatOutput{}, err
+	}
+
+	return ChatOutput{Response: finalAnswer}, nil
 }
