@@ -117,6 +117,7 @@ func (s *Vllm) MakeVLLMRequest(messages []Message, temperature float64, stream f
 		if len(streamResp.Choices) > 0 {
 			content := streamResp.Choices[0].Delta.Content
 			if content != "" {
+				fmt.Printf("Got chunk from VLLM: %s\n", content)
 				if err := stream(content); err != nil {
 					return fmt.Errorf("error streaming response: %v", err)
 				}

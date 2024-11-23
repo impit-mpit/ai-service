@@ -87,6 +87,7 @@ func (uc chatInteractor) Execute(ctx context.Context, input ChatInput, stream fu
 	if err != nil {
 		return err
 	}
+	fmt.Println("Indexes:", indexesBuilder.String())
 
 	messages = append(messages, vllm.Message{
 		Role:    "assistant",
