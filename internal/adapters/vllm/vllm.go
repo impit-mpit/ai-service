@@ -51,6 +51,7 @@ func (s *Vllm) MakeVLLMRequest(messages []Message, temperature float64) (string,
 		prompt += fmt.Sprintf("%s: %s\n", msg.Role, msg.Content)
 	}
 
+	fmt.Println(prompt)
 	vllmReq := VLLMRequest{
 		Model:       "Vikhrmodels/Vikhr-Nemo-12B-Instruct-R-21-09-24",
 		Prompt:      prompt,
@@ -63,6 +64,7 @@ func (s *Vllm) MakeVLLMRequest(messages []Message, temperature float64) (string,
 		return "", fmt.Errorf("error marshaling request: %v", err)
 	}
 
+	fmt.Println(jsonData)
 	req, err := http.NewRequest("POST", s.vllmURL+"/v1/completions", bytes.NewBuffer(jsonData))
 	if err != nil {
 		return "", fmt.Errorf("error creating request: %v", err)
@@ -77,12 +79,13 @@ func (s *Vllm) MakeVLLMRequest(messages []Message, temperature float64) (string,
 		return "", fmt.Errorf("error making request: %v", err)
 	}
 	defer resp.Body.Close()
-	fmt.Println(resp.Body)
+	fmt.Println(resp)
 
 	var vllmResp VLLMResponse
 	if err := json.NewDecoder(resp.Body).Decode(&vllmResp); err != nil {
 		return "", fmt.Errorf("error decoding response: %v", err)
 	}
+	fmt.Println(vllmResp)
 
 	if len(vllmResp.Choices) == 0 {
 		return "", fmt.Errorf("no choices in response")
