@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"neuro-most/ai-service/internal/adapters/vllm"
-	"strings"
 )
 
 type (
@@ -79,7 +78,6 @@ func (uc chatInteractor) Execute(ctx context.Context, input ChatInput, stream fu
 		{Role: "user", Content: input.Message},
 	}
 
-	var indexesBuilder strings.Builder
 	indexes, err := uc.vllm.MakeVLLMRequest(messages, 0.0)
 	if err != nil {
 		return err
@@ -88,7 +86,7 @@ func (uc chatInteractor) Execute(ctx context.Context, input ChatInput, stream fu
 
 	messages = append(messages, vllm.Message{
 		Role:    "assistant",
-		Content: indexesBuilder.String(),
+		Content: indexes,
 	})
 
 	return uc.vllm.MakeVLLMStreamRequest(messages, 0.3, func(text string) error {
