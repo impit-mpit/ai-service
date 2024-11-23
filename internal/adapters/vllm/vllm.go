@@ -77,6 +77,7 @@ func (s *Vllm) MakeVLLMRequest(messages []Message, temperature float64) (string,
 		return "", fmt.Errorf("error making request: %v", err)
 	}
 	defer resp.Body.Close()
+	fmt.Println(resp.Body)
 
 	var vllmResp VLLMResponse
 	if err := json.NewDecoder(resp.Body).Decode(&vllmResp); err != nil {
