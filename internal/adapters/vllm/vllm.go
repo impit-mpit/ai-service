@@ -33,9 +33,7 @@ type VLLMResponse struct {
 
 type Vllm struct {
 	vllmURL string
-	// documents    []Document
-	// systemPrompt string
-	apiKey string
+	apiKey  string
 }
 
 func NewVllm(vllmURL, apiKey string) *Vllm {
@@ -64,7 +62,7 @@ func (s *Vllm) MakeVLLMRequest(messages []Message, temperature float64) (string,
 		return "", fmt.Errorf("error marshaling request: %v", err)
 	}
 
-	fmt.Println(jsonData)
+	fmt.Println(vllmReq.Prompt)
 	req, err := http.NewRequest("POST", s.vllmURL+"/v1/completions", bytes.NewBuffer(jsonData))
 	if err != nil {
 		return "", fmt.Errorf("error creating request: %v", err)
@@ -79,13 +77,12 @@ func (s *Vllm) MakeVLLMRequest(messages []Message, temperature float64) (string,
 		return "", fmt.Errorf("error making request: %v", err)
 	}
 	defer resp.Body.Close()
-	fmt.Println(resp)
 
 	var vllmResp VLLMResponse
 	if err := json.NewDecoder(resp.Body).Decode(&vllmResp); err != nil {
 		return "", fmt.Errorf("error decoding response: %v", err)
 	}
-	fmt.Println(vllmResp)
+	fmt.Println(vllmResp.Choices)
 
 	if len(vllmResp.Choices) == 0 {
 		return "", fmt.Errorf("no choices in response")
